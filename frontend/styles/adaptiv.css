@@ -1,0 +1,84 @@
+@media (max-width: 1214px) {
+    .container {
+        max-width: 920px;
+    }
+    .main__sort-date-create {
+        margin-right: 16px;
+    }
+    .main__sort-date-update {
+        margin-right: 20px;
+    }
+    .main__contacts {
+        margin-right: 73px;
+    }
+    .main__actions {
+        margin-right: 56px;
+    }
+    .main__client-col-date {
+        display: flex;
+        flex-wrap: wrap;
+        max-width: 72px;
+    }
+    .main__client-col-actions {
+        max-width: 85px;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    .main__client-contacts {
+        margin-right: 0;
+    }
+    .main__actions {
+        margin-right: 60px;
+    }
+}
+@media (max-width: 720px) {
+    .header__container {
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .header__logo-link {
+        margin: 0;
+    }
+    .header__logo-link img {
+        width: 24px;
+        height: 24px;
+    }
+    .header__search {
+        display: none;
+    }
+    .main__container {
+        padding-top: 70px;
+    }
+    .main__table-spinner {
+        left: 45%;
+    }
+    .modal-header-box {
+        padding: 0 15px;
+    }
+    .form-close-btn {
+        top: 5px;
+        right: 5px;
+    }
+    .form-input-box {
+        width: 270px;
+        margin: 0 15px 32px;
+    }
+    .contact-box {
+        margin: 0 15px 15px;
+    }
+    .select-selected {
+        width: 110px;
+        margin-right: 6px;
+    }
+    .contact-input {
+        width: 125px;
+    }
+    .delete-button-contact {
+        margin-left: 0;
+    }
+    .select-items div {
+        width: 109px;
+    }
+}

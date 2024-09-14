@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru-RU">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <link rel="stylesheet" href="styles/normalize.css" />
+        <link rel="stylesheet" href="styles/resetting.css" />
+        <link rel="stylesheet" href="styles/style.css" />
+        <link rel="stylesheet" href="styles/adaptiv.css" />
+        <script type="module" src="scripts/main.js" defer></script>
+        <script type="module" src="scripts/customSelect.js" defer></script>
+        <title>CRM система</title>
+        <link rel="icon" href="./images/logo.svg" type="image/svg">
+    </head>
+    <body class="body">
+        <header class="header">
+            <div class="container header__container">
+                <a href="/" class="header__logo-link">
+                    <img src="images/logo.svg" alt="Логотип компании" />
+                </a>
+
+                <input class="input header__search"
+                    type="search"
+                    id="search-input"
+                    placeholder="Введите запрос"
+                />
+            </div>
+        </header>
+        <div id="overlay" class="overlay" style="display: none;"></div>
+        <div id="overlayDelete" class="overlay-delete" style="display: none;"></div>
+        <main class="main">
+            <div class="container main__container">
+                <h1 class="hdr1 main__hdr1">
+                    Клиенты
+                </h1>
+                <div class="main__table-container">
+                    <div class="main__table-spinner-wrapper"></div>
+                    <div class="main__table-spinner"></div>
+                    <table id="client-table" class="client-table">
+                        <thead>
+                            <tr class="main__sort-items">
+                                <th data-sort="id" class="main__sort-item main__sort-id" data-sort-direction="asc">
+                                    ID<span class="main__sort-arrow"></span>
+                                </th>
+                                <th data-sort="name" class="main__sort-item main__sort-name" data-sort-direction="asc">
+                                    Фамилия Имя Отчество<span class="main__sort-arrow"></span
+                                    ><span class="main__sort-lttrs">А-Я</span>
+                                </th>
+                                <th data-sort="createdAt" class="main__sort-item main__sort-date main__sort-date-create" data-sort-direction="asc">
+                                    Дата и время создания<span class="main__sort-arrow"></span>
+                                </th>
+                                <th data-sort="updatedAt" class="main__sort-item main__sort-date main__sort-date-update" data-sort-direction="asc">
+                                    Последние изменения<span class="main__sort-arrow"></span>
+                                </th>
+                                <th class="non-clickable main__contacts">Контакты</th>
+                                <th class="non-clickable main__actions">Действия</th>
+                                <th class="non-clickable main__links">Ссылка</th>
+                            </tr>
+                        </thead>
+                        <tbody class="main__tbody">
+                            <!-- Здесь будут отображаться данные клиентов -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="add-client-button-box">
+                    <button id="add-client-button" class="add-client-button"><i><img src="images/add-client.svg" alt=""></i>Добавить клиента</button>
+                </div>
+                <div class="error-box">
+                    <p class="error-box__text">
+                    </p>
+                </div>
+                <!-- Модальное окно для добавления/редактирования клиентов -->
+                <div id="client-modal" style="display: none" class="modal client-modal">
+                    <div class="modal-header-box">
+                        <div class="modal-hdr">Новый клиент</div>
+                        <div class="modal-hdr-id"></div>
+                    </div>
+                    <form id="client-form" class="client-form">
+                        <div class="form-input-box form-surname-box">
+                            <label for="surname-input" class="form-label">Фамилия<span class="form-label-aster">*</span></label>
+                            <input type="text" id="surname-input" class="input form-input"/>
+                        </div>
+                        <div class="form-input-box form-name-box">
+                            <label for="name-input" class="form-label">Имя<span class="form-label-aster">*</span></label>
+                            <input type="text" id="name-input" class="input form-input"/>
+                        </div>
+                        <div class="form-input-box form-last-name-box">
+                            <label for="last-name-input" class="form-label">Отчество</label>
+                            <input type="text" id="last-name-input"  class="input form-input"/>
+                        </div>
+
+                        <div id="contactsBox" class="form-contacts"></div>
+                        <div class="form-add-btn-box">
+                            <button type="button" id="add-contact-button" class="form-add-btn">
+                                <i class="action-icon icon-plus"></i>
+                                Добавить контакт
+                            </button>
+                        </div>
+                        <div class="modal-error-msg"></div>
+                        <button type="submit" id="save-contact-button" class="form-save-btn">
+                            Сохранить
+                        </button>
+                    </form>
+                    <button type="button" class="form-close-btn"><i class="action-icon icon-cross"></i></button>
+                    <button type="button" id="cancel-modal-button" class="form-cancel-btn">Отмена</button>
+                </div>
+                <div class="modal delete-modal" style="display: none;">
+                    <div class="delete-modal__hdr">Удалить клиента</div>
+                    <p class="paragraph delete-modal__question">Вы действительно хотите удалить данного клиента?</p>
+                    <button type="button" class="form-close-btn delete-modal__close-btn"><i class="action-icon icon-cross"></i></button>
+                    <button class="delete-modal__del-btn">Удалить</button>
+                    <button class="delete-modal__close-btn form-cancel-btn">Отмена</button>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>
