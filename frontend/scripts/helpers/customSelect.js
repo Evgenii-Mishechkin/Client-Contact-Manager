@@ -1,4 +1,3 @@
-// customSelect
 export default function initializeCustomSelect(customSelect) {
     if (!customSelect) return;
 
@@ -65,35 +64,41 @@ export default function initializeCustomSelect(customSelect) {
     selected.addEventListener("click", function (e) {
         e.stopPropagation();
 
-        if (optionsContainer.classList.contains("select-show")) {
-            optionsContainer.classList.remove("select-show");
-            setTimeout(
-                () => optionsContainer.classList.add("select-hide"),
-                500
-            );
-        } else {
-            optionsContainer.classList.remove("select-hide");
-            setTimeout(() => optionsContainer.classList.add("select-show"), 10);
-        }
+        // Проверяем текущее состояние селекта
+        const isAlreadyOpen = optionsContainer.classList.contains("select-show");
 
-        selected.classList.toggle("select-arrow-active");
+        // Закрываем все другие селекты перед действием
+        closeAllSelect(selected);
+
+        // Переключаем классы только если селект не был открыт
+        if (!isAlreadyOpen) {
+            optionsContainer.classList.remove("select-hide");
+            optionsContainer.classList.add("select-show");
+            selected.classList.add("select-arrow-active");
+        } else {
+            // Если он уже был открыт, то закрываем его
+            optionsContainer.classList.remove("select-show");
+            optionsContainer.classList.add("select-hide");
+            selected.classList.remove("select-arrow-active");
+        }
     });
 
-    document.addEventListener("click", closeAllSelect);
+    // Закрытие всех селектов при клике вне
+    document.addEventListener("click", function (e) {
+        closeAllSelect(e.target);
+    });
 
     function closeAllSelect(el) {
         document.querySelectorAll(".select-items").forEach((selectItems) => {
             if (selectItems.previousSibling !== el) {
                 selectItems.classList.remove("select-show");
-                setTimeout(() => selectItems.classList.add("select-hide"), 500);
+                selectItems.classList.add("select-hide");
             }
         });
-        document
-            .querySelectorAll(".select-selected")
-            .forEach((selectSelected) => {
-                if (selectSelected !== el) {
-                    selectSelected.classList.remove("select-arrow-active");
-                }
-            });
+        document.querySelectorAll(".select-selected").forEach((selectSelected) => {
+            if (selectSelected !== el) {
+                selectSelected.classList.remove("select-arrow-active");
+            }
+        });
     }
 }

@@ -1,6 +1,6 @@
-import shortNumber from "./shortNumber.js";
-import labelUp from "./labelUp.js";
-import initializeCustomSelect from "./customSelect.js";
+import shortNumber from "./helpers/shortNumber.js";
+import labelUp from "./helpers/labelUp.js";
+import initializeCustomSelect from "./helpers/customSelect.js";
 
 (function () {
     const localHost = 'http://localhost:3000';
@@ -22,12 +22,14 @@ import initializeCustomSelect from "./customSelect.js";
     const clientModal = document.getElementById("client-modal");
     const modalHeader = document.querySelector(".modal-hdr");
     const modalHeaderId = document.querySelector(".modal-hdr-id");
-    const deleteModal = document.querySelector(".delete-modal");
     const tableBody = document.querySelector("#client-table tbody");
     const errorMessage = document.querySelector(".modal-error-msg");
     const formSurnameBox = document.querySelector(".form-surname-box");
     const formNameBox = document.querySelector(".form-name-box");
     const mainErrorText = document.querySelector('.error-box__text');
+    const tableHeaders = document.querySelectorAll("#client-table th");
+    const allArrows = document.querySelectorAll(".main__sort-arrow");
+
     let errorArray = [];
     /* Переменные кнопок действия в строке клиента */
     let updateButtonRow;
@@ -50,7 +52,7 @@ import initializeCustomSelect from "./customSelect.js";
         "Другое",
     ];
     const contactPlaceholder = {
-        tel: "+712345678910",
+        tel: "+7 (123) 456-78-91",
         email: "example@mail.ru",
         site: "http://example-site.ru",
     };
@@ -66,12 +68,9 @@ import initializeCustomSelect from "./customSelect.js";
         tr.classList.add("main__client-row");
         return tr;
     }
-    function newTd(addClass) {
+    function newTd(addClass='') {
         const td = document.createElement("td");
-        td.classList.add("main__client-col");
-        if (addClass) {
-            td.classList.add(addClass);
-        }
+        td.className = `main__client-col ${addClass}`.trim();
         return td;
     }
     function newUl() {
@@ -83,49 +82,36 @@ import initializeCustomSelect from "./customSelect.js";
     function newSpan() {
         return document.createElement("span");
     }
-    function newButton(text, classes, typeBtn, onclick, iconClass) {
-        let button = document.createElement("button");
-        let icon = document.createElement("i");
+    function newButton(text = '', classes = '', typeBtn = 'button', onclick = null, iconClass = '') {
+        const button = document.createElement("button");
+        const icon = document.createElement("i");
 
-        if (iconClass) {
-            icon.className = iconClass;
-        }
-        if (classes) {
-            button.className = classes;
-        }
+        icon.className = iconClass;
+        button.className = classes;
+        button.type = typeBtn;
 
         button.appendChild(icon);
         if (text) {
             button.appendChild(document.createTextNode(text));
         }
 
-        if (typeBtn) {
-            button.type = typeBtn;
-        }
         button.onclick = onclick;
+
         return button;
     }
-    function newDiv(addClass) {
+    function newDiv(addClass = '') {
         const div = document.createElement("div");
-        if (addClass) {
-            div.classList.add(addClass);
-        }
+        div.className = addClass.trim();
         return div;
     }
-    function newSelect(addClass) {
+    function newSelect(addClass = '') {
         const select = document.createElement("select");
-        select.classList.add("select");
-        if (addClass) {
-            select.classList.add(addClass);
-        }
+        select.className = `select ${addClass}`.trim();
         return select;
     }
-    function newInput(addClass) {
+    function newInput(addClass = '') {
         const input = document.createElement("input");
-        input.classList.add("input");
-        if (addClass) {
-            input.classList.add(addClass);
-        }
+        input.className = `input ${addClass}`.trim();
         return input;
     }
     function newOption() {
@@ -134,12 +120,12 @@ import initializeCustomSelect from "./customSelect.js";
     function newIcon(type) {
         let iconElement = document.createElement("span");
         let classMap = {
-            Телефон: "contact-icon contact-icon-phone",
+            "Телефон": "contact-icon contact-icon-phone",
             "Доп. телефон": "contact-icon contact-icon-add-phone",
-            Email: "contact-icon contact-icon-email",
-            VK: "contact-icon contact-icon-vk",
-            Facebook: "contact-icon contact-icon-facebook",
-            Другое: "contact-icon contact-icon-other",
+            "Email": "contact-icon contact-icon-email",
+            "VK": "contact-icon contact-icon-vk",
+            "Facebook": "contact-icon contact-icon-facebook",
+            "Другое": "contact-icon contact-icon-other",
         };
         iconElement.className = classMap[type] || "contact-icon";
         return iconElement;
@@ -152,10 +138,13 @@ import initializeCustomSelect from "./customSelect.js";
             ".main__table-spinner-wrapper"
         );
         const spinner = document.querySelector(".main__table-spinner");
-        spinnerWrapper.style.opacity = "1";
         spinnerWrapper.style.display = "block";
         spinner.style.display = "block";
-        spinner.classList.add("main__table-spinner-on");
+
+        setTimeout(() => {
+            spinnerWrapper.classList.add("show");
+            spinner.classList.add("main__table-spinner-on");
+        }, 10);
     }
     /* Скрыть спиннер */
     function hideSpinner() {
@@ -164,8 +153,8 @@ import initializeCustomSelect from "./customSelect.js";
         );
         const spinner = document.querySelector(".main__table-spinner");
         setTimeout(() => {
-            spinnerWrapper.style.opacity = "0";
             spinner.classList.remove("main__table-spinner-on");
+            spinnerWrapper.classList.remove("show");
             setTimeout(() => {
                 spinnerWrapper.style.display = "none";
                 spinner.style.display = "none";
@@ -199,95 +188,73 @@ import initializeCustomSelect from "./customSelect.js";
         }, 300);
     }
     /* ASYNC */
-    /* Загружаем список студентов с сервера */
-    async function openListClients() {
-        mainErrorText.textContent = '';
-        showSpinner();
+    async function apiRequest(url, method = "GET", body = null) {
+        mainErrorText.textContent = ''; // Очищаем текст ошибок
+        showSpinner(); // Показываем спиннер
 
-        try {
-            const response = await fetch(localHost + "/api/clients");
-            const data = await response.json();
-            clients = data;
+        const options = {
+            method,
+            headers: { "Content-Type": "application/json" },
+        };
 
-            // Отобразить данные в таблице
-            renderClientsTable(clients);
-        } catch (error) {
-            console.error("Ошибка при получении данных клиентов:", error);
-            mainErrorText.textContent = "Ошибка при получении данных клиентов";
-        } finally {
-            hideSpinner();
+        if (body) {
+            options.body = JSON.stringify(body);
         }
-    }
-    /* Добавление клиента в базу данных */
-    async function addClient(client) {
-        mainErrorText.textContent = '';
-        showSpinner();
 
         try {
-            await fetch(localHost + "/api/clients", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(client),
-            });
-            await openListClients();
-            clientForm.reset();
-        } catch (error) {
-            console.error("Ошибка при добавлении клиента:", error);
-            mainErrorText.textContent = "Ошибка при добавлении клиента";
-        } finally {
-            hideSpinner();
-        }
-    }
-    /* Удаление клиента с сервера */
-    async function deleteClient(clientId) {
-        mainErrorText.textContent = '';
-        showSpinner();
+            const response = await fetch(url, options);
 
-        try {
-            await fetch(`${localHost}/api/clients/${clientId}`, {
-                method: "DELETE",
-            });
-            await openListClients();
-            overlayForm.style.display = "none";
-            clientModal.style.display = "none";
-            contactsBox.innerHTML = "";
-            addClientBtn.disabled = false;
-        } catch (error) {
-            console.error("Ошибка при удалении клиента:", error);
-            mainErrorText.textContent = "Ошибка при удалении клиента";
-        } finally {
-            hideSpinner();
-        }
-    }
-    /* Обновление данных о клиенте на сервере */
-    async function updateClient(clientId, updatedData) {
-        await fetch(`${localHost}/api/clients/${clientId}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updatedData),
-        });
-        console.log(updatedData);
-        openListClients();
-        clientForm.reset();
-    }
-    async function fetchClientData(clientId) {
-        mainErrorText.textContent = '';
-        try {
-            const response = await fetch(
-                `${localHost}/api/clients/${clientId}`
-            );
             if (!response.ok) {
                 throw new Error(`Ошибка HTTP: ${response.status}`);
             }
-            const data = await response.json();
-            openModalClient(data);
+
+            return method !== "DELETE" ? response.json() : null;
         } catch (error) {
-            console.error("Ошибка загрузки данных клиента:", error);
-            mainErrorText.textContent = "Ошибка загрузки данных клиента";
+            console.error(`Ошибка при выполнении запроса: ${error.message}`);
+            mainErrorText.textContent = `Ошибка при выполнении запроса: ${error.message}`;
+            throw error;
+        } finally {
+            hideSpinner(); // Скрываем спиннер
         }
     }
+
+    /* Загружаем список клиентов с сервера */
+    async function openListClients() {
+        clients = await apiRequest(localHost + "/api/clients");
+        // Отображаем данные в таблице
+        renderClientsTable(clients);
+    }
+
+    /* Добавление клиента в базу данных */
+    async function addClient(client) {
+        await apiRequest(localHost + "/api/clients", "POST", client);
+        await openListClients();
+        clientForm.reset();
+    }
+
+    /* Удаление клиента с сервера */
+    async function deleteClient(clientId) {
+        await apiRequest(`${localHost}/api/clients/${clientId}`, "DELETE");
+        await openListClients();
+        overlayForm.style.display = "none";
+        clientModal.style.display = "none";
+        contactsBox.innerHTML = "";
+        addClientBtn.disabled = false;
+    }
+
+    /* Обновление данных о клиенте на сервере */
+    async function updateClient(clientId, updatedData) {
+        await apiRequest(`${localHost}/api/clients/${clientId}`, "PATCH", updatedData);
+        await openListClients();
+        clientForm.reset();
+    }
+
+    /* Загрузка данных клиента */
+    async function fetchClientData(clientId) {
+        const data = await apiRequest(`${localHost}/api/clients/${clientId}`);
+        openModalClient(data);
+    }
+
     /* ASYNC END */
     /* Функция первой заглавной буквы в ФИО */
     function capitalizeFirstLetter(str) {
@@ -341,8 +308,7 @@ import initializeCustomSelect from "./customSelect.js";
             valueContainer.className = "contact-value";
             valueContainer.textContent = `${contact.type}: ${contact.value}`;
 
-            contactItem.appendChild(iconElement);
-            contactItem.appendChild(valueContainer);
+            contactItem.append(iconElement,valueContainer);
             contactList.appendChild(contactItem);
         });
 
@@ -386,7 +352,7 @@ import initializeCustomSelect from "./customSelect.js";
         }
     }
     /* Открытие модального окна для удаления клиента */
-    function openDeleteWindow(clientId) {
+    function openDeleteModal(clientId) {
 
         showModal('.delete-modal', '.overlay-delete');
 
@@ -407,27 +373,92 @@ import initializeCustomSelect from "./customSelect.js";
         document
             .querySelectorAll(".delete-modal__close-btn")
             .forEach((btn) => {
-                btn.onclick = () =>{closeDeleteWindow();}
+                btn.onclick = () =>{closeDeleteModal();}
                 });
 
 
     }
-    // Функция для установки плейсхолдера на основе типа контакта
+    // Функция для применения маски телефона
+    function applyPhoneMask(event) {
+        let value = event.target.value.replace(/\D/g, "");
+        event.target.value = formatPhoneNumber(value);
+    }
+    // Функция для установки начального значения +7 при фокусе
+    function applyPhoneMaskOnFocus(event) {
+        if (event.target.value === "") {
+            event.target.value = "+7 ";
+        }
+    }
+    // Функция для форматирования номера телефона
+    function formatPhoneNumber(value) {
+        value = value.replace(/\D/g, "");
+
+        if (value.length === 0) {
+            return "+7";
+        }
+
+        let formattedValue = "+7 ";
+        if (value.length > 1) {
+            formattedValue += "(" + value.substring(1, 4);
+        }
+
+        if (value.length >= 4) {
+            formattedValue += ") " + value.substring(4, 7);
+        }
+
+        if (value.length >= 7) {
+            formattedValue += "-" + value.substring(7, 9);
+        }
+
+        if (value.length >= 9) {
+            formattedValue += "-" + value.substring(9, 11);
+        }
+
+        // Обрабатываем удаление: если длина уменьшилась, динамически убираем масочные символы
+        if (value.length < 11) {
+            formattedValue = formattedValue.replace(/-$/, "");
+        }
+        if (value.length < 8) {
+            formattedValue = formattedValue.replace(/-$/, "");
+        }
+        if (value.length < 5) {
+            formattedValue = formattedValue.replace(/\) ?$/, "");
+        }
+
+        return formattedValue;
+    }
+    // Функция для установки плейсхолдера и типа контакта.
     function setPlaceholderBasedOnType(contactType, inputElement) {
+        // Очищаем предыдущие обработчики, если они были добавлены
+        inputElement.removeEventListener("input", applyPhoneMask);
+        inputElement.removeEventListener("focus", applyPhoneMaskOnFocus);
+
         switch (contactType) {
             case "Телефон":
             case "Доп. телефон":
                 inputElement.placeholder = contactPlaceholder.tel;
+                inputElement.type = "tel"; // Устанавливаем тип инпута как телефон
+                inputElement.maxLength = 18; // Ограничение на 18 символов для формата +7 (999) 999-99-99
+
+                // Добавляем обработчики для маски телефона
+                inputElement.addEventListener("input", applyPhoneMask);
+                inputElement.addEventListener("focus", applyPhoneMaskOnFocus);
                 break;
             case "Email":
                 inputElement.placeholder = contactPlaceholder.email;
+                inputElement.type = "email"; // Устанавливаем тип инпута как email
+                inputElement.maxLength = 100; // Сбрасываем ограничение длины
                 break;
             case "VK":
             case "Facebook":
                 inputElement.placeholder = contactPlaceholder.site;
+                inputElement.type = "url"; // Устанавливаем тип инпута как URL
+                inputElement.maxLength = 100; // Сбрасываем ограничение длины
                 break;
             default:
                 inputElement.placeholder = "Введите контактные данные";
+                inputElement.type = "text"; // Стандартный текстовый инпут
+                inputElement.maxLength = 100; // Сбрасываем ограничение длины
         }
     }
     // Функция для создания нового контактного блока
@@ -474,22 +505,12 @@ import initializeCustomSelect from "./customSelect.js";
 
         // Добавляем элементы в контактный блок
         customSelectContainer.appendChild(contactUpSelect);
-        contactDiv.appendChild(customSelectContainer);
-        contactDiv.appendChild(contactUpInput);
-        contactDiv.appendChild(deleteButtonContact);
+        contactDiv.append(customSelectContainer,contactUpInput,deleteButtonContact);
 
-        if (contactUpInput.value !== "") {
-            deleteButtonContact.disabled = false;
-        } else {
-            deleteButtonContact.disabled = true;
-        }
+        deleteButtonContact.disabled = contactUpInput.value === "";
 
         contactUpInput.addEventListener("input", () => {
-            if (contactUpInput.value !== "") {
-                deleteButtonContact.disabled = false;
-            } else {
-                deleteButtonContact.disabled = true;
-            }
+            deleteButtonContact.disabled = contactUpInput.value === "";
         });
 
         toggleDeleteButton(contactUpInput, deleteButtonContact);
@@ -503,12 +524,8 @@ import initializeCustomSelect from "./customSelect.js";
 
         // Привязываем обработчик изменения типа контакта
         customSelectContainer.addEventListener("click", function () {
-            const selectedOption =
-                customSelectContainer.querySelector(
-                    ".select-selected"
-                ).innerText;
+            const selectedOption = customSelectContainer.querySelector(".select-selected").innerText;
             setPlaceholderBasedOnType(selectedOption, contactUpInput);
-
             contactUpInput.value = "";
         });
 
@@ -533,11 +550,7 @@ import initializeCustomSelect from "./customSelect.js";
     }
     /* Функция для проверки отображения кнопки удалить контакт */
     function toggleDeleteButton(input, deleteBtn) {
-        if (input.value !== "") {
-            deleteBtn.disabled = false;
-        } else {
-            deleteBtn.disabled = true;
-        }
+        deleteBtn.disabled = input.value === "";
     }
     /* Отрисовка массива clients[] */
     function renderClientsTable(clients) {
@@ -575,8 +588,7 @@ import initializeCustomSelect from "./customSelect.js";
             let createdAtTime = newSpan();
             createdAtTime.className = "main__client-time";
             createdAtTime.textContent = formatDate(createdAt).split(" ")[1];
-            createdAtCell.appendChild(createdAtDate);
-            createdAtCell.appendChild(createdAtTime);
+            createdAtCell.append(createdAtDate,createdAtTime);
             row.appendChild(createdAtCell);
 
             /* Дата и время обновления */
@@ -588,8 +600,7 @@ import initializeCustomSelect from "./customSelect.js";
             let updatedAtTime = newSpan();
             updatedAtTime.className = "main__client-time";
             updatedAtTime.textContent = formatDate(updatedAt).split(" ")[1];
-            updatedAtCell.appendChild(updatedAtDate);
-            updatedAtCell.appendChild(updatedAtTime);
+            updatedAtCell.append(updatedAtDate,updatedAtTime);
             row.appendChild(updatedAtCell);
 
             /* Контакты клиента */
@@ -622,7 +633,7 @@ import initializeCustomSelect from "./customSelect.js";
                 "Удалить",
                 "action-button-row delete-button-row",
                 "",
-                () => openDeleteWindow(clientId),
+                () => openDeleteModal(clientId),
                 "action-icon icon-cancel"
             );
             actionsCell.appendChild(deleteButtonRow);
@@ -699,15 +710,15 @@ import initializeCustomSelect from "./customSelect.js";
             "Удалить клиента",
             "delete-modal-Client",
             "button",
-            () => openDeleteWindow(clientId)
+            () => openDeleteModal(clientId)
         );
         clientForm.appendChild(deleteModalClient);
 
         /* Событие клик кнопки ОБНОВИТЬ данные клиента */
         updateButton.onclick = () => {
             currentClient = 0;
-
             hideErrors();
+
 
             let isValidName = true;
 
@@ -717,11 +728,9 @@ import initializeCustomSelect from "./customSelect.js";
 
             if (!surname || !name) {
                 if (!surname) {
-                    console.log("surname: ", surname);
                     errorInput(formSurnameBox);
                 }
                 if (!name) {
-                    console.log("name: ", name);
                     errorInput(formNameBox);
                 }
                 errorArray.push("Заполните все обязательные поля со ' * ' ");
@@ -751,17 +760,14 @@ import initializeCustomSelect from "./customSelect.js";
                 updateClient(clientId, updatedData);
                 contactsBox.innerHTML = "";
                 addClientBtn.disabled = false;
-                document
-                    .querySelectorAll(".update-button-row")
+                document.querySelectorAll(".update-button-row")
                     .forEach(function (btn) {
                         btn.disabled = false;
                     });
-
                 resetClientForm();
+
+
             } else {
-                console.log(
-                    "Один или несколько контактов недействительны. Отправка на сервер отменена."
-                );
                 return;
             }
         };
@@ -771,58 +777,53 @@ import initializeCustomSelect from "./customSelect.js";
     /* Функция добавления валидных контактов */
     function addValidContacts(inputs, selects) {
         let valid = true;
-        let contacts = inputs
-            .map((input, index) => {
-                const select = selects[index];
-                const type = select.value;
-                const value = input.value.trim();
 
-                errorMessage.innerText = "";
+        const validationRules = {
+            "Телефон": isValidPhoneNumber,
+            "Доп. телефон": isValidPhoneNumber,
+            "Email": isValidEmail,
+            "VK": isValidURL,
+            "Facebook": isValidURL,
+            "Другое": (val) => val !== ""
+        };
 
-                let contactValid = true; // Флаг для отслеживания валидности текущего контакта
-                if (
-                    (type === "Телефон" || type === "Доп. телефон") &&
-                    !isValidPhoneNumber(value)
-                ) {
-                    errorInput(input.closest(".contact-box"));
-                    errorArray.push("Неверный формат номера телефона");
-                    errorMessageCheck(errorArray);
-                    contactValid = false;
-                    valid = false;
-                } else if (type === "Email" && !isValidEmail(value)) {
-                    errorInput(input.closest(".contact-box"));
-                    errorArray.push("Неверный формат электронной почты");
-                    errorMessageCheck(errorArray);
-                    contactValid = false;
-                    valid = false;
-                } else if (
-                    (type === "VK" || type === "Facebook") &&
-                    !isValidURL(value)
-                ) {
-                    errorInput(input.closest(".contact-box"));
-                    errorArray.push("Неверный формат ссылки");
-                    errorMessageCheck(errorArray);
-                    contactValid = false;
-                    valid = false;
-                } else if (type === "Другое" && value == "") {
-                    errorInput(input.closest(".contact-box"));
-                    errorArray.push("Не заполненное поле");
-                    errorMessageCheck(errorArray);
-                    contactValid = false;
-                    valid = false;
-                }
+        const errorMessages = {
+            "Телефон": "Неверный формат номера телефона",
+            "Доп. телефон": "Неверный формат номера телефона",
+            "Email": "Неверный формат электронной почты",
+            "VK": "Неверный формат ссылки",
+            "Facebook": "Неверный формат ссылки",
+            "Другое": "Не заполненное поле"
+        };
 
-                return contactValid ? { type, value } : null; // Возвращаем контакт, если он валиден
-            })
-            .filter((contact) => contact !== null); // Оставляем только валидные контакты
+        let contacts = inputs.map((input, index) => {
+            const select = selects[index];
+            const type = select.value;
+            const value = input.value.trim();
 
-        console.log("Валидные контакты: ", contacts);
+            // Проверка по правилу для каждого типа контакта
+            if (validationRules[type] && !validationRules[type](value)) {
+                errorInput(input.closest(".contact-box"));
+                errorArray.push(errorMessages[type]);
+                errorMessageCheck(errorArray);
+                valid = false;
+                return null; // Если не валидно, не возвращаем контакт
+            }
+
+            return { type, value }; // Возвращаем контакт, если валиден
+        }).filter(Boolean); // Убираем все невалидные контакты
+
         return { contacts, valid };
     }
     /* Функция валидации телефона */
     function isValidPhoneNumber(phone) {
-        const regex = /^(\+7\s?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$/;
-        return regex.test(phone);
+        // Удаляем все символы, кроме цифр и знака "+"
+        const cleanedPhone = phone.replace(/[^\d+]/g, '');
+
+        // Регулярное выражение для проверки формата номера телефона
+        const regex = /^(\+7)?[0-9]{10}$/;
+
+        return regex.test(cleanedPhone);
     }
     /* Функция валидации email */
     function isValidEmail(email) {
@@ -844,10 +845,9 @@ import initializeCustomSelect from "./customSelect.js";
                     result = a.id - b.id;
                     break;
                 case "name":
-                    result =
-                        `${a.name} ${a.surname} ${a.lastName}`.localeCompare(
-                            `${b.name} ${b.surname} ${b.lastName}`
-                        );
+                    result = `${a.name} ${a.surname} ${a.lastName}`.localeCompare(
+                        `${b.name} ${b.surname} ${b.lastName}`
+                    );
                     break;
                 case "createdAt":
                     result = new Date(a.createdAt) - new Date(b.createdAt);
@@ -855,6 +855,8 @@ import initializeCustomSelect from "./customSelect.js";
                 case "updatedAt":
                     result = new Date(a.updatedAt) - new Date(b.updatedAt);
                     break;
+                default:
+                    result = 0; // Защита от неправильных полей сортировки
             }
             return direction === "asc" ? result : -result;
         });
@@ -877,18 +879,10 @@ import initializeCustomSelect from "./customSelect.js";
 
         // Устанавливаем состояние кнопки удаления контакта
         if (deleteBtn) {
-            if (!allInputsFilled) {
-                deleteBtn.disabled = true;
-            } else {
-                deleteBtn.disabled = false;
-            }
+            deleteBtn.disabled = allInputsFilled;
         }
         // Устанавливаем состояние кнопки добавления контакта
-        if (!allInputsFilled || currentContactCount >= maxContacts) {
-            btn.disabled = true;
-        } else {
-            btn.disabled = false;
-        }
+        btn.disabled = !allInputsFilled || currentContactCount >= maxContacts;
     }
     function errorInput(errInp) {
         errInp.style.borderColor = "var(--color-error)";
@@ -898,36 +892,23 @@ import initializeCustomSelect from "./customSelect.js";
             errorMessage.classList.add("modal-error-msg-active");
             errorMessage.innerHTML = "";
             arr.forEach((error) => {
-                console.log(error);
                 errorMessage.innerHTML += error + "<br>";
             });
         } else {
             errorMessage.classList.remove("modal-error-msg-active");
         }
     }
-    function hideErrors(contactBox) {
+    function hideErrors() {
+        errorArray = [];
+        formSurnameBox.style.borderColor = "revert-layer";
+        formNameBox.style.borderColor = "revert-layer";
+
         document.querySelectorAll(".form-input").forEach((input) => {
             input.addEventListener("input", () => {
                 formSurnameBox.style.borderColor = "revert-layer";
                 formNameBox.style.borderColor = "revert-layer";
-                errorMessage.innerHTML = "";
-                errorArray = [];
-                errorMessageCheck(errorArray);
-                if (contactBox) {
-                    contactBox.style.borderColor = "revert-layer";
-                }
             });
         });
-
-        formSurnameBox.style.borderColor = "revert-layer";
-        formNameBox.style.borderColor = "revert-layer";
-        errorMessage.innerHTML = "";
-        errorArray = [];
-        errorMessageCheck(errorArray);
-
-        if (contactBox) {
-            contactBox.style.borderColor = "revert-layer";
-        }
     }
     function loadClientData() {
         // Извлекаем clientId, удаляя символ '#'
@@ -978,7 +959,7 @@ import initializeCustomSelect from "./customSelect.js";
         // Скрываем модальное окно
         hideModal('.client-modal', '.overlay');
     }
-    function closeDeleteWindow() {
+    function closeDeleteModal() {
 
         hideModal('.delete-modal', '.overlay-delete');
 
@@ -988,6 +969,36 @@ import initializeCustomSelect from "./customSelect.js";
                 btn.disabled = false;
             });
     }
+    // Функция обработки ввода для поиска
+    function handleSearchInput() {
+        const input = this.value.toLowerCase();
+        const rows = document.getElementById("client-table").getElementsByTagName("tr");
+
+        Array.from(rows).forEach((row, index) => {
+            if (index === 0) return;
+            const idCell = row.getElementsByTagName("td")[0];
+            const nameCell = row.getElementsByTagName("td")[1];
+
+            if (idCell && nameCell) {
+                const idText = idCell.textContent || idCell.innerText;
+                const nameText = nameCell.textContent || nameCell.innerText;
+
+                const matches =
+                    idText.toLowerCase().includes(input) ||
+                    nameText.toLowerCase().includes(input);
+
+                row.style.display = matches ? "" : "none";
+            }
+        });
+    }
+    function debounce(fn, delay) {
+        let timer;
+        return function () {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, arguments), delay);
+        };
+    }
+
     /* ------FUNCTIONS--------- */
 
     /* ---------------EVENTS------------- */
@@ -1041,139 +1052,86 @@ import initializeCustomSelect from "./customSelect.js";
     });
     /* Сохранение данных клиента */
     clientForm.addEventListener("submit", function (event) {
-        /* Останавливаем стандартную перезагрузку формы */
+        // Останавливаем стандартную перезагрузку формы
         event.preventDefault();
-        event.stopPropagation();
 
         hideErrors();
-        let isValid = true;
-        let surname = surnameInput.value.trim();
-        let name = nameInput.value.trim();
-        let lastName = lastNameInput.value.trim();
 
+        let isValidName = true;
+        let isValid = true;
+
+        // Получаем значения полей
+        const surname = surnameInput.value.trim();
+        const name = nameInput.value.trim();
+        const lastName = lastNameInput.value.trim();
+
+        // Проверка обязательных полей
         if (!surname || !name) {
-            if (!surname) {
-                console.log("surname: ", surname);
-                errorInput(formSurnameBox);
-            }
-            if (!name) {
-                console.log("name: ", name);
-                errorInput(formNameBox);
-            }
+            if (!surname) errorInput(formSurnameBox);
+            if (!name) errorInput(formNameBox);
             errorArray.push("Заполните все обязательные поля со ' * ' ");
             errorMessageCheck(errorArray);
-            isValid = false;
+            isValidName = false;
         }
 
         const contactInputs = Array.from(contactsBox.querySelectorAll("input"));
-        const contactSelects = Array.from(
-            contactsBox.querySelectorAll("select")
-        );
+        const contactSelects = Array.from(contactsBox.querySelectorAll("select"));
 
-        const contacts = contactInputs
-            .map((input, index) => {
-                const select = contactSelects[index];
-                const type = select.value;
-                const value = input.value;
+        // Используем функцию для валидации контактов
+        let contactsValid = addValidContacts(contactInputs, contactSelects);
+            isValid = contactsValid.valid;
+            let contacts = contactsValid.contacts;
 
-                errorMessage.innerText = "";
+            if (isValid && isValidName) {
+                const client = {
+                    name: name,
+                    surname: surname,
+                    lastName: lastName,
+                    contacts: contacts,
+                };
 
-                let contactValid = true; // Флаг для отслеживания валидности текущего контакта
+                // Добавляем клиента и закрываем модальное окно
+                addClient(client);
+                overlayForm.style.display = "none";
+                clientModal.style.display = "none";
+                addClientBtn.disabled = false;
+                resetClientForm();
 
-                if (
-                    (type === "Телефон" || type === "Доп. телефон") &&
-                    !isValidPhoneNumber(value)
-                ) {
-                    errorInput(input.closest(".contact-box"));
-                    console.log("Неверный формат номера телефона:", value);
-                    errorArray.push("Неверный формат номера телефона");
-                    errorMessageCheck(errorArray);
-                    contactValid = false;
-                    isValid = false;
-                }
-
-                if (type === "Email" && !isValidEmail(value)) {
-                    errorInput(input.closest(".contact-box"));
-                    console.log("Неверный формат электронной почты:", value);
-                    errorArray.push("Неверный формат электронной почты");
-                    errorMessageCheck(errorArray);
-                    contactValid = false;
-                    isValid = false;
-                }
-
-                if (
-                    (type === "VK" || type === "Facebook") &&
-                    !isValidURL(value)
-                ) {
-                    errorInput(input.closest(".contact-box"));
-                    console.log("Неверный формат ссылки:", value);
-                    errorArray.push("Неверный формат ссылки");
-                    errorMessageCheck(errorArray);
-                    contactValid = false;
-                    isValid = false;
-                }
-                if (type === "Другое" && value == "") {
-                    errorInput(input.closest(".contact-box"));
-                    errorArray.push("Не заполненное поле");
-                    errorMessageCheck(errorArray);
-                    contactValid = false;
-                    isValid = false;
-                }
-
-                if (contactValid) {
-                    return { type, value }; // Возвращаем контакт, если он валиден
-                } else {
-                    return null; // Возвращаем null, если контакт невалиден
-                }
-            })
-            .filter((contact) => contact); // Оставляем только валидные контакты
-
-        if (!isValid) {
-            console.log(
-                "Один или несколько контактов недействительны. Отправка на сервер отменена."
-            );
-            return;
-        }
-
-        const client = {
-            name: name,
-            surname: surname,
-            lastName: lastName,
-            contacts: contacts,
-        };
-
-        addClient(client);
-        overlayForm.style.display = "none";
-        clientModal.style.display = "none";
-        /* Кнопка "Добавить клиента" активна */
-        addClientBtn.disabled = false;
+            } else {
+                return;
+            }
     });
     /* Закрываем модальное окно */
     closeBtn.addEventListener("click", resetClientForm);
     cancelBtn.addEventListener("click", resetClientForm);
     overlayForm.addEventListener("click", resetClientForm);
-    overlayDelete.addEventListener("click", closeDeleteWindow);
+    overlayDelete.addEventListener("click", closeDeleteModal);
 
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' || event.key === 'Esc') {
+            resetClientForm();
+            closeDeleteModal();
+        }
+    });
     contactsBox.addEventListener("input", function () {
         updateAddContactButtonState(currentClient, addContactBtn);
     });
-    /* Сортировка клиентов при нажатии на заголовки таблицы */
-    document.querySelectorAll("#client-table th").forEach((th) => {
-        th.addEventListener("click", function () {
-            // Сброс всех стрелок и сортировочных букв
-            document.querySelectorAll(".main__sort-arrow").forEach((arr) => {
-                arr.classList.remove("arrow-down", "arrow-up");
-            });
 
-            // Обновление текущей стрелки и сортировочных букв
+    /* Сортировка клиентов при нажатии на заголовки таблицы */
+    tableHeaders.forEach((th) => {
+        th.addEventListener("click", function () {
+            // Селекторы, которые зависят от конкретного заголовка
             const arrow = th.querySelector(".main__sort-arrow");
             const sortLetters = th.querySelector(".main__sort-lttrs");
             const currentDirection = th.getAttribute("data-sort-direction");
-            const newDirection = currentDirection === "asc" ? "desc" : "asc";
+            const sortBy = th.getAttribute("data-sort");
 
-            arrow.classList.add(
-                newDirection === "asc" ? "arrow-up" : "arrow-down"
-            );
+            allArrows.forEach((arr) => {
+                arr.classList.remove("arrow-down", "arrow-up");
+            });
+
+            const newDirection = currentDirection === "asc" ? "desc" : "asc";
+            arrow.classList.add(newDirection === "asc" ? "arrow-up" : "arrow-down");
 
             if (sortLetters) {
                 sortLetters.textContent = sortLetters.textContent
@@ -1183,49 +1141,21 @@ import initializeCustomSelect from "./customSelect.js";
             }
 
             th.setAttribute("data-sort-direction", newDirection);
-            const sortBy = th.getAttribute("data-sort");
             const sortedClients = filterClients(clients, sortBy, newDirection);
-
             renderClientsTable(sortedClients);
         });
     });
+
     document.addEventListener("DOMContentLoaded", function () {
-        /* Запуск отрисовки клиентов */
+        // Запуск отрисовки клиентов
         openListClients();
-        /* вызываем эту функцию при инициализации страницы, чтобы убедиться, что состояние кнопки правильное */
+
+        // Вызываем эту функцию при инициализации страницы, чтобы убедиться, что состояние кнопки правильное
         updateAddContactButtonState(currentClient, addContactBtn);
-        /* Реализация поиска по имени и фамилии */
-        document
-            .getElementById("search-input")
-            .addEventListener("input", function () {
-                clearTimeout(this.searchTimer); // Очищаем текущий таймер при новом вводе
-                this.searchTimer = setTimeout(() => {
-                    // Устанавливаем новый таймер
-                    let input = this.value.toLowerCase();
-                    let table = document.getElementById("client-table");
-                    let rows = table.getElementsByTagName("tr");
 
-                    for (let i = 1; i < rows.length; i++) {
-                        let idCell = rows[i].getElementsByTagName("td")[0];
-                        let nameCell = rows[i].getElementsByTagName("td")[1];
-
-                        if (idCell && nameCell) {
-                            let idText = idCell.textContent || idCell.innerText;
-                            let nameText =
-                                nameCell.textContent || nameCell.innerText;
-
-                            if (
-                                idText.toLowerCase().indexOf(input) > -1 ||
-                                nameText.toLowerCase().indexOf(input) > -1
-                            ) {
-                                rows[i].style.display = "";
-                            } else {
-                                rows[i].style.display = "none";
-                            }
-                        }
-                    }
-                }, 300); // Задержка в 300 мс
-            });
+        const searchInput = document.getElementById("search-input");
+        searchInput.addEventListener("input", debounce(handleSearchInput, 300));
     });
+
     /* ---------------EVENTS------------- */
 })();
